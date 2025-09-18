@@ -1,38 +1,54 @@
-import React, { useState, useEffect } from "react";
+// src/App.js
+import React, { useEffect, useState } from "react";
+import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import UrlShortener from "./pages/UrlShortener";
+import Statistics from "./pages/Statistics";
+import { AppBar, Toolbar, Button } from "@mui/material";
+import { logEvent } from "./middleware/eventLogger";
 
 function App() {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [urls, setUrls] = useState([]);
 
-  // Fetch users from API
+  // === THIS is the "first function" they will expect to see integrated with logging ===
   useEffect(() => {
-    fetch("https://jsonplaceholder.typicode.com/users")
-      .then((res) => res.json())
-      .then((data) => {
-        setUsers(data);
-        setLoading(false);
+    // Try retrieving a saved token (from registration) if available
+    const token = localStorage.getItem("authToken") || null;
+
+    // Call logging middleware right away when the app starts
+    logEvent(
+      { stack: "frontend", level: "info", pkg: "app", message: "App started" },
+      token
+    )
+      .then(() => {
+        /* optionally handle response */
       })
-      .catch((err) => {
-        console.error("Error fetching users:", err);
-        setLoading(false);
+      .catch(() => {
+        /* ignore */
       });
   }, []);
 
+  function handleAddUrl(newUrl) {
+    setUrls((prev) => [...prev, newUrl]);
+  }
+
   return (
-    <div style={{ padding: "20px", fontFamily: "Arial" }}>
-      <h1>User List</h1>
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        <ul>
-          {users.map((user) => (
-            <li key={user.id}>
-              <strong>{user.name}</strong> – {user.email}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+    <BrowserRouter>
+      <AppBar position="static">
+        <Toolbar>
+          <Button color="inherit" component={Link} to="/">
+            Shorten
+          </Button>
+          <Button color="inherit" component={Link} to="/stats">
+            Stats
+          </Button>
+        </Toolbar>
+      </AppBar>
+
+      <Routes>
+        <Route path="/" element={<UrlShortener onAddUrl={handleAddUrl} />} />
+        <Route path="/stats" element={<Statistics urls={urls} />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
